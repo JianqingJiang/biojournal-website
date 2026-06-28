@@ -1,0 +1,16 @@
+{
+  "name": "biojournal-fetch-news",
+  "version": "1.0.0",
+  "description": "Netlify Function to fetch biomedical journal news",
+  "main": "fetch-news.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "xml2js": "^0.6.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

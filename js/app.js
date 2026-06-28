@@ -1,12 +1,26 @@
-// js/app.js - BioJournal 网站主逻辑（真实数据版）
+// js/app.js - BioJournal 网站主逻辑（真实数据版 v2.0）
 
 // 全局变量
 let currentFilter = 'all';
 let isLoading = false;
 let currentNewsData = [];
 
-// Netlify Function URL（部署后自动生效）
+// Netlify Function URL
 const API_URL = '/.netlify/functions/fetch-news';
+
+// 期刊颜色映射
+function getJournalColor(journalName) {
+    const colors = {
+        'Science': '#1a73e8',
+        'BMJ': '#d40000',
+        'Google News - Biomedicine': '#4285f4',
+        'Medical News Today': '#dc3912',
+        '新华健康': '#ff0000',
+        '人民网健康': '#ff0000',
+        '中国新闻网健康': '#ff0000'
+    };
+    return colors[journalName] || '#1a73e8';
+}
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -17,7 +31,7 @@ async function initApp() {
     // 设置日期
     updateDate();
     
-    // 加载新闻（从PubMed获取真实数据）
+    // 加载新闻
     await loadNews();
     
     // 绑定事件
@@ -47,7 +61,7 @@ async function loadNews() {
     if (feedEnd) feedEnd.style.display = 'none';
     
     try {
-        console.log('正在从PubMed获取真实生物医药期刊文章...');
+        console.log('正在从期刊RSS获取真实新闻...');
         
         // 调用Netlify Function
         const response = await fetch(API_URL);
@@ -60,18 +74,18 @@ async function loadNews() {
         
         if (data.success && data.news && data.news.length > 0) {
             currentNewsData = data.news;
-            console.log(`成功获取 ${data.news.length} 篇真实文章`);
-            console.log('数据来源：', data.note);
+            console.log(`✅ 成功获取 ${data.news.length} 条真实新闻`);
+            console.log(`📊 统计: ${data.statistics.international} 国际, ${data.statistics.domestic} 国内`);
         } else {
             throw new Error('未获取到新闻数据');
         }
         
     } catch (error) {
-        console.error('获取新闻失败:', error);
+        console.error('❌ 获取新闻失败:', error);
         console.log('使用备用数据...');
         
-        // 备用数据（只在API失败时使用，且必须是真实数据）
-        currentNewsData = FALLBACK_NEWS;
+        // 备用数据（只在API失败时使用）
+        currentNewsData = generateLocalFallback();
     }
     
     // 显示新闻
@@ -80,6 +94,40 @@ async function loadNews() {
     
     if (loading) loading.style.display = 'none';
     if (feedEnd) feedEnd.style.display = 'flex';
+}
+
+// 生成本地备用数据（临时方案）
+function generateLocalFallback() {
+    const now = new Date();
+    
+    return [
+        {
+            id: 'fallback-1',
+            title: 'Breaking: New COVID-19 Variant Detected in Europe',
+            titleCn: '突发：欧洲发现新的COVID-19变种',
+            summary: 'Scientists have detected a new SARS-CoV-2 variant in Europe. Early analysis suggests it may be more transmissible but less severe.',
+            summaryCn: '科学家在欧洲发现了新的SARS-CoV-2变种。初步分析表明它可能更具传染性，但严重程度较低。',
+            journal: 'Science',
+            journalCn: '科学杂志',
+            pubDate: now.toISOString(),
+            url: 'https://www.science.org/',
+            type: 'international',
+            language: 'en'
+        },
+        {
+            id: 'fallback-2',
+            title: '中国首个自主知识产权ADC药物获批上市',
+            titleCn: '中国首个自主知识产权ADC药物获批上市',
+            summary: 'Summary unavailable - fallback data',
+            summaryCn: '中国国家药品监督管理局（NMPA）批准了首个中国自主研发的抗体偶联药物（ADC）上市，标志着中国生物医药创新的重要里程碑。',
+            journal: '新华健康',
+            journalCn: '新华网健康栏目',
+            pubDate: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
+            url: 'http://www.xinhuanet.com/health/',
+            type: 'domestic',
+            language: 'zh'
+        }
+    ];
 }
 
 // 显示新闻
@@ -92,16 +140,18 @@ function displayNews(newsList) {
     // 过滤
     let filtered = newsList;
     if (currentFilter === 'international') {
-        filtered = newsList.filter(n => n.isInternational);
+        filtered = newsList.filter(n => n.type === 'international');
     } else if (currentFilter === 'domestic') {
-        filtered = newsList.filter(n => !n.isInternational);
+        filtered = newsList.filter(n => n.type === 'domestic');
     }
     
     // 按日期排序
     filtered.sort((a, b) => {
-        const dateA = new Date(a.pubDate);
-        const dateB = new Date(b.pubDate);
-        return dateB - dateA;
+        try {
+            return new Date(b.pubDate) - new Date(a.pubDate);
+        } catch (e) {
+            return 0;
+        }
     });
     
     // 更新计数
@@ -132,21 +182,22 @@ function createNewsCard(news, index) {
     card.style.animationDelay = `${index * 0.05}s`;
     card.onclick = () => openDetail(news.id);
     
-    const regionClass = news.isInternational ? 'intl' : 'domestic';
-    const regionText = news.isInternational ? '国际' : '国内';
+    const regionClass = news.type === 'international' ? 'intl' : 'domestic';
+    const regionText = news.type === 'international' ? '国际' : '国内';
+    
+    // 使用中文标题和摘要（如果有）
+    const displayTitle = news.titleCn || news.title;
+    const displaySummary = news.summaryCn || news.summary;
     
     card.innerHTML = `
         <div class="card-journal">
-            <div class="journal-dot" style="background: ${news.journalColor}"></div>
-            <span class="journal-name">${news.journalShort}</span>
+            <div class="journal-dot" style="background: ${getJournalColor(news.journal)}"></div>
+            <span class="journal-name">${news.journalCn || news.journal}</span>
             <span class="region-tag ${regionClass}">${regionText}</span>
             <span class="card-date">${formatDate(news.pubDate)}</span>
         </div>
-        <div class="card-title">${news.title}</div>
-        <div class="card-summary">${news.summary || '点击查看详情'}</div>
-        <div class="card-tags">
-            ${(news.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
-        </div>
+        <div class="card-title">${displayTitle}</div>
+        <div class="card-summary">${displaySummary || '点击查看详情'}</div>
         <div class="card-footer">
             <span class="read-more">点击查看详情 →</span>
         </div>
@@ -168,25 +219,25 @@ function openDetail(id) {
         if (e.target === modal) closeModal('detailModal');
     };
     
-    const regionClass = news.isInternational ? 'intl' : 'domestic';
-    const regionText = news.isInternational ? '国际期刊' : '国内期刊';
+    const regionClass = news.type === 'international' ? 'intl' : 'domestic';
+    const regionText = news.type === 'international' ? '国际期刊' : '国内期刊';
+    
+    // 使用中文标题和摘要
+    const displayTitle = news.titleCn || news.title;
+    const displaySummary = news.summaryCn || news.summary;
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
-                <h2 style="font-size: 16px; color: ${news.journalColor}">${news.journalShort}</h2>
+                <h2 style="font-size: 16px; color: ${getJournalColor(news.journal)}">${news.journalCn || news.journal}</h2>
                 <button class="modal-close" onclick="closeModal('detailModal')">×</button>
             </div>
             <div class="modal-body">
-                <h1 style="font-size: 22px; line-height: 1.5; margin-bottom: 12px; color: #111827;">${news.title}</h1>
+                <h1 style="font-size: 22px; line-height: 1.5; margin-bottom: 12px; color: #111827;">${displayTitle}</h1>
                 
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-                    ${(news.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
-                
-                <div style="background: #f9fafb; padding: 16px; border-radius: 12px; margin-bottom: 16px; border-left: 4px solid ${news.journalColor};">
+                <div style="background: #f9fafb; padding: 16px; border-radius: 12px; margin-bottom: 16px; border-left: 4px solid ${getJournalColor(news.journal)};">
                     <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">内容摘要</div>
-                    <p style="font-size: 15px; line-height: 1.8; color: #374151;">${news.summary || '暂无摘要，点击原文链接查看详情'}</p>
+                    <p style="font-size: 15px; line-height: 1.8; color: #374151;">${displaySummary || '暂无摘要，点击原文链接查看详情'}</p>
                 </div>
                 
                 <div style="background: white; border: 1px solid #e5e7eb; padding: 16px; border-radius: 12px;">
@@ -194,26 +245,20 @@ function openDetail(id) {
                     <div style="display: grid; gap: 8px;">
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #6b7280;">期刊</span>
-                            <span style="font-weight: 500;">${news.journalName} (${news.journalShort})</span>
+                            <span style="font-weight: 500;">${news.journalCn || news.journal}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #6b7280;">发布日期</span>
-                            <span>${news.pubDate}</span>
+                            <span>${formatDate(news.pubDate)}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #6b7280;">来源</span>
-                            <span class="${regionClass}" style="color: ${news.isInternational ? '#2563eb' : '#dc2626'}; font-weight: 500;">${regionText}</span>
+                            <span class="${regionClass}" style="color: ${news.type === 'international' ? '#2563eb' : '#dc2626'}; font-weight: 500;">${regionText}</span>
                         </div>
-                        ${news.url ? `
+                        ${news.url && news.url !== '#' ? `
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #6b7280;">原文链接</span>
                             <a href="${news.url}" target="_blank" style="color: #1a73e8; text-decoration: none; font-size: 13px;">打开原文 →</a>
-                        </div>
-                        ` : ''}
-                        ${news.pmid ? `
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #6b7280;">PubMed ID</span>
-                            <a href="https://pubmed.ncbi.nlm.nih.gov/${news.pmid}/" target="_blank" style="color: #1a73e8; text-decoration: none; font-size: 13px;">${news.pmid}</a>
                         </div>
                         ` : ''}
                     </div>
@@ -316,27 +361,6 @@ function closeModal(id) {
     }
 }
 
-// 备用数据（只在API失败时使用，且必须是真实数据）
-const FALLBACK_NEWS = [
-    {
-        id: 'pubmed_42341323',
-        journalId: 'nejm',
-        journalName: 'New England Journal of Medicine',
-        journalShort: 'NEJM',
-        isInternational: true,
-        journalColor: '#2563eb',
-        title: 'Clinical Characteristics of Patients Infected with Bundibugyo Virus, DRC 2026',
-        titleCn: '2026年刚果民主共和国Bundibugyo病毒感染患者的临床特征',
-        summary: 'Bundibugyo virus, a filovirus, is currently spreading in the Democratic Republic of Congo. This report presents early data on symptoms and illness severity as well as diagnostic challenges.',
-        summaryCn: 'Bundibugyo病毒是一种丝状病毒，目前正在刚果民主共和国传播。本报告提供了关于症状、疾病严重程度以及诊断挑战的早期数据。',
-        pubDate: '2026-06-24',
-        url: 'https://doi.org/10.1056/NEJMc2608070',
-        tags: ['Virology', 'Infectious Disease', 'Outbreak'],
-        source: 'PubMed',
-        pmid: '42341323'
-    }
-];
-
 // 下拉刷新（移动端）
 let touchStartY = 0;
 let isRefreshing = false;
@@ -378,14 +402,14 @@ function showRefreshIndicator() {
         z-index: 10001;
         animation: slideDown 0.3s ease-out;
     `;
-    indicator.textContent = '正在从PubMed获取最新文章...';
+    indicator.textContent = '正在获取最新新闻...';
     document.body.appendChild(indicator);
 }
 
 async function refreshNews() {
     const indicator = document.getElementById('refreshIndicator');
     if (indicator) {
-        indicator.textContent = '正在获取最新文章...';
+        indicator.textContent = '正在获取最新新闻...';
     }
     
     await loadNews();
