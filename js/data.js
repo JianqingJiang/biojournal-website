@@ -1,189 +1,7 @@
-// js/data.js - BioJournal 新闻数据
+// js/data.js - BioJournal 新闻数据配置
+// 注意：不再使用虚假数据，所有数据从PubMed API获取
 
-const NEWS_DATA = [
-    {
-        id: 'n001',
-        journalId: 'nejm',
-        journalName: 'New England Journal of Medicine',
-        journalShort: 'NEJM',
-        isInternational: true,
-        journalColor: '#2563eb',
-        title: 'Novel CRISPR-Based Therapy Shows Promise in Treating Sickle Cell Disease: Phase III Results',
-        titleCn: '新型CRISPR-Cas9疗法治疗镰状细胞病III期试验结果积极',
-        summary: 'A groundbreaking Phase III clinical trial demonstrates that a novel CRISPR-Cas9 gene editing therapy achieved sustained hemoglobin normalization in 94% of patients with severe sickle cell disease, with minimal adverse effects observed over 24 months of follow-up.',
-        summaryCn: '一项突破性的III期临床试验表明，新型CRISPR-Cas9基因编辑疗法在94%的重症镰状细胞病患者中实现了持续的血红蛋白正常化，在24个月的随访中观察到最小的不良反应。',
-        pubDate: '2026-06-28',
-        url: 'https://www.nejm.org/doi/full/10.1056/NEJMoa2600001',
-        tags: ['Gene Therapy', 'CRISPR', 'Hematology', 'Phase III']
-    },
-    {
-        id: 'n002',
-        journalId: 'lancet',
-        journalName: 'The Lancet',
-        journalShort: 'Lancet',
-        isInternational: true,
-        journalColor: '#7c3aed',
-        title: 'Global Burden of Antimicrobial Resistance: 2026 Update from the GRAM Study',
-        titleCn: '全球抗菌素耐药性负担：GRAM研究2026年更新',
-        summary: 'The latest Global Research on Antimicrobial Resistance (GRAM) study reveals that antimicrobial-resistant infections caused an estimated 5.2 million deaths in 2025, with the highest burden in sub-Saharan Africa and South Asia.',
-        summaryCn: '最新的全球抗菌素耐药性研究(GRAM)显示，2025年抗菌素耐药感染估计造成520万人死亡，其中撒哈拉以南非洲和南亚的负担最重。',
-        pubDate: '2026-06-27',
-        url: 'https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(26)00001-1/fulltext',
-        tags: ['Antimicrobial Resistance', 'Global Health', 'Epidemiology']
-    },
-    {
-        id: 'n003',
-        journalId: 'nature_med',
-        journalName: 'Nature Medicine',
-        journalShort: 'Nat Med',
-        isInternational: true,
-        journalColor: '#059669',
-        title: 'Single-Cell Atlas of the Aging Human Brain Reveals Novel Therapeutic Targets for Alzheimer\'s Disease',
-        titleCn: '人类大脑衰老单细胞图谱揭示阿尔茨海默病新治疗靶点',
-        summary: 'Researchers have constructed the most comprehensive single-cell transcriptomic atlas of the aging human brain, identifying 17 previously unknown cell states and three potential drug targets for early intervention in Alzheimer\'s disease.',
-        summaryCn: '研究人员构建了最全面的人类大脑衰老单细胞转录组图谱，鉴定出17种以前未知的细胞状态和三个阿尔茨海默病早期干预的潜在药物靶点。',
-        pubDate: '2026-06-27',
-        url: 'https://www.nature.com/articles/s41591-026-00001-1',
-        tags: ['Neuroscience', 'Aging', 'Alzheimer\'s', 'Single-Cell']
-    },
-    {
-        id: 'n004',
-        journalId: 'cell',
-        journalName: 'Cell',
-        journalShort: 'Cell',
-        isInternational: true,
-        journalColor: '#ea580c',
-        title: 'mRNA Vaccine Platform Expanded to Target 15 High-Burden Pathogens Simultaneously',
-        titleCn: 'mRNA疫苗平台扩展至同时靶向15种高负担病原体',
-        summary: 'A multi-center study reports the development of a next-generation mRNA vaccine platform capable of encoding antigens from 15 different pathogens in a single dose, showing robust immunogenicity and safety in non-human primate models.',
-        summaryCn: '一项多中心研究报告了下一代mRNA疫苗平台的开发，该平台能够在单剂中编码来自15种不同病原体的抗原，在非人灵长类动物模型中显示出强大的免疫原性和安全性。',
-        pubDate: '2026-06-26',
-        url: 'https://www.cell.com/cell/fulltext/S0092-8674(26)00001-5',
-        tags: ['mRNA Vaccine', 'Infectious Disease', 'Immunology']
-    },
-    {
-        id: 'n005',
-        journalId: 'science',
-        journalName: 'Science',
-        journalShort: 'Science',
-        isInternational: true,
-        journalColor: '#4f46e5',
-        title: 'AI-Designed Protein Drugs Enter First Human Trials for Autoimmune Diseases',
-        titleCn: 'AI设计的蛋白质药物进入自身免疫疾病首次人体试验',
-        summary: 'For the first time, fully AI-designed therapeutic proteins have entered Phase I human trials, targeting previously "undruggable" autoimmune pathways with precision that exceeds natural antibody binding affinity by 100-fold.',
-        summaryCn: '完全由AI设计的治疗性蛋白质首次进入I期人体试验，以前所未有的精确度靶向以前"不可成药"的自身免疫通路，其亲和力超过天然抗体结合力100倍。',
-        pubDate: '2026-06-26',
-        url: 'https://www.science.org/doi/10.1126/science.ade0001',
-        tags: ['AI Drug Design', 'Autoimmune', 'Protein Engineering']
-    },
-    {
-        id: 'n006',
-        journalId: 'jama',
-        journalName: 'JAMA',
-        journalShort: 'JAMA',
-        isInternational: true,
-        journalColor: '#dc2626',
-        title: 'Long-Term Cardiovascular Outcomes After GLP-1 Receptor Agonist Therapy: 5-Year Follow-up Study',
-        titleCn: 'GLP-1受体激动剂治疗后的长期心血管结局：5年随访研究',
-        summary: 'A large cohort study of 180,000 patients shows that GLP-1 receptor agonist therapy is associated with a 22% reduction in major adverse cardiovascular events over 5 years, with benefits extending beyond weight loss.',
-        summaryCn: '一项涉及18万患者的大型队列研究表明，GLP-1受体激动剂治疗与5年内主要不良心血管事件减少22%相关，其益处超越了体重减轻本身。',
-        pubDate: '2026-06-25',
-        url: 'https://jamanetwork.com/journals/jama/fullarticle/000001',
-        tags: ['GLP-1', 'Cardiovascular', 'Diabetes', 'Obesity']
-    },
-    {
-        id: 'n007',
-        journalId: 'nat_biotech',
-        journalName: 'Nature Biotechnology',
-        journalShort: 'Nat Biotechnol',
-        isInternational: true,
-        journalColor: '#0891b2',
-        title: 'Organoid-Based Drug Screening Identifies Novel Therapeutics for Rare Liver Diseases',
-        titleCn: '基于类器官的药物筛选鉴定出罕见肝病新疗法',
-        summary: 'Patient-derived liver organoids were used to screen 12,000 compounds, resulting in the identification of two candidates that restore bile acid homeostasis in models of progressive familial intrahepatic cholestasis.',
-        summaryCn: '患者来源的肝脏类器官被用于筛选12000种化合物，结果鉴定出两个候选药物，可恢复进行性家族性肝内胆汁淤积症模型中的胆汁酸稳态。',
-        pubDate: '2026-06-25',
-        url: 'https://www.nature.com/articles/s41587-026-00001-8',
-        tags: ['Organoid', 'Drug Screening', 'Rare Disease', 'Hepatology']
-    },
-    {
-        id: 'n008',
-        journalId: 'zhyx',
-        journalName: '中华医学杂志',
-        journalShort: '中华医学',
-        isInternational: false,
-        journalColor: '#b91c1c',
-        title: '中国人群脑卒中精准预防策略：基于10万例队列的研究报告',
-        titleCn: '中国人群脑卒中精准预防策略：基于10万例队列的研究报告',
-        summary: '通过对10万中国人群队列的10年随访，研究建立了首个适用于中国人群的脑卒中多基因风险评分模型，该模型可将高危人群识别率提高35%。',
-        summaryCn: '通过对10万中国人群队列的10年随访，研究建立了首个适用于中国人群的脑卒中多基因风险评分模型，该模型可将高危人群识别率提高35%。',
-        pubDate: '2026-06-28',
-        url: '',
-        tags: ['脑卒中', '精准医学', '队列研究', '中国人群']
-    },
-    {
-        id: 'n009',
-        journalId: 'bmj',
-        journalName: 'BMJ',
-        journalShort: 'BMJ',
-        isInternational: true,
-        journalColor: '#ca8a04',
-        title: 'Effectiveness of Annual Health Checks in Reducing All-Cause Mortality: A Nationwide Cohort Study',
-        titleCn: '年度健康体检降低全因死亡率的有效性：一项全国性队列研究',
-        summary: 'A nationwide cohort study in the UK found that adults who attended annual health checks had a 14% lower risk of all-cause mortality and 11% fewer emergency hospital admissions compared with non-attenders.',
-        summaryCn: '英国一项全国性队列研究发现，与未参加者相比，参加年度健康体检的成年人全因死亡风险降低14%，急诊住院减少11%。',
-        pubDate: '2026-06-24',
-        url: 'https://www.bmj.com/content/373/bmj.n0001',
-        tags: ['Public Health', 'Screening', 'Mortality']
-    },
-    {
-        id: 'n010',
-        journalId: 'nat_genet',
-        journalName: 'Nature Genetics',
-        journalShort: 'Nat Genet',
-        isInternational: true,
-        journalColor: '#65a30d',
-        title: 'Whole-Genome Sequencing of 500,000 Participants Reveals New Disease-Associated Loci',
-        titleCn: '50万参与者全基因组测序揭示新的疾病相关基因位点',
-        summary: 'The UK Biobank whole-genome sequencing analysis has identified 67 novel loci associated with common diseases, including 12 for type 2 diabetes and 8 for coronary artery disease, with implications for polygenic risk scoring.',
-        summaryCn: '英国生物样本库全基因组测序分析鉴定出67个与常见疾病相关的新基因位点，其中12个与2型糖尿病相关，8个与冠心病相关，对多基因风险评分具有重要意义。',
-        pubDate: '2026-06-24',
-        url: 'https://www.nature.com/articles/s41588-026-00001-3',
-        tags: ['Genomics', 'GWAS', 'UK Biobank', 'Polygenic Risk']
-    },
-    {
-        id: 'n011',
-        journalId: 'zgsci',
-        journalName: '中国科学: 生命科学',
-        journalShort: '中国科学',
-        isInternational: false,
-        journalColor: '#1d4ed8',
-        title: '中国科学家揭示新冠变异株免疫逃逸新机制及广谱疫苗设计新策略',
-        titleCn: '中国科学家揭示新冠变异株免疫逃逸新机制及广谱疫苗设计新策略',
-        summary: '清华大学研究团队阐明了新冠奥密克戎变异株的免疫逃逸分子机制，并提出了一种基于保守表位的广谱疫苗设计新策略，相关成果已在动物模型中验证。',
-        summaryCn: '清华大学研究团队阐明了新冠奥密克戎变异株的免疫逃逸分子机制，并提出了一种基于保守表位的广谱疫苗设计新策略，相关成果已在动物模型中验证。',
-        pubDate: '2026-06-27',
-        url: '',
-        tags: ['新冠疫苗', '免疫逃逸', '广谱疫苗', '清华大学']
-    },
-    {
-        id: 'n012',
-        journalId: 'pnas',
-        journalName: 'PNAS',
-        journalShort: 'PNAS',
-        isInternational: true,
-        journalColor: '#0d9488',
-        title: 'Gut Microbiome Modulation Improves Response to Cancer Immunotherapy: Randomized Clinical Trial',
-        titleCn: '肠道微生物组调节改善癌症免疫治疗反应：随机临床试验',
-        summary: 'A Phase II randomized trial shows that dietary fiber supplementation and fecal microbiota transplantation from complete responders significantly improved anti-PD-1 therapy outcomes in patients with advanced melanoma.',
-        summaryCn: '一项II期随机试验表明，膳食纤维补充和来自完全应答者的粪便微生物移植显著改善了晚期黑色素瘤患者的抗PD-1治疗效果。',
-        pubDate: '2026-06-23',
-        url: 'https://www.pnas.org/doi/10.1073/pnas.2600001',
-        tags: ['Microbiome', 'Immunotherapy', 'Melanoma', 'FMT']
-    }
-];
-
-// 期刊配置
+// 期刊配置 - 只使用真实的生物医药期刊
 const JOURNALS = {
     international: [
         { id: 'nejm', name: 'New England Journal of Medicine', short: 'NEJM', color: '#2563eb' },
@@ -198,10 +16,29 @@ const JOURNALS = {
         { id: 'pnas', name: 'PNAS', short: 'PNAS', color: '#0d9488' }
     ],
     domestic: [
-        { id: 'zhyx', name: '中华医学杂志', short: '中华医学', color: '#b91c1c' },
-        { id: 'zgsci', name: '中国科学: 生命科学', short: '中国科学', color: '#1d4ed8' },
-        { id: 'swxb', name: '生物工程学报', short: '生物工程', color: '#059669' },
-        { id: 'yzyx', name: '中国药理学通报', short: '药理学', color: '#7c3aed' },
-        { id: 'zsxb', name: '微生物学报', short: '微生物', color: '#ea580c' }
+        { id: 'cmj', name: 'Chinese Medical Journal', short: 'CMJ', color: '#b91c1c' },
+        { id: 'zhyx', name: '中华医学杂志', short: '中华医学', color: '#dc2626' },
+        { id: 'zgsci', name: '中国科学: 生命科学', short: '中国科学', color: '#1d4ed8' }
     ]
 };
+
+// PubMed API配置
+const PUBMED_CONFIG = {
+    baseUrl: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils',
+    journals: {
+        nejm: '"N Engl J Med"[Journal]',
+        lancet: '"Lancet"[Journal]',
+        jama: '"JAMA"[Journal]',
+        nature_med: '"Nat Med"[Journal]',
+        cell: '"Cell"[Journal]',
+        science: '"Science"[Journal]',
+        nat_biotech: '"Nat Biotechnol"[Journal]',
+        nat_genet: '"Nat Genet"[Journal]',
+        bmj: '"BMJ"[Journal]',
+        pnas: '"PNAS"[Journal]'
+    }
+};
+
+// 导出
+window.JOURNALS = JOURNALS;
+window.PUBMED_CONFIG = PUBMED_CONFIG;
