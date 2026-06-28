@@ -15,7 +15,7 @@ const BIOMED_KEYWORDS = [
   // 中文关键词
   '医学', '医药', '临床', '药物', '治疗', '疾病', '癌症', '肿瘤',
   '患者', 'FDA', '批准', '疫苗', '生物', '基因', '抗体', '病毒',
-  '免疫', '糖尿病', '阿尔兹海默', '心脏', '肝脏', '肺部', '脑部',
+  '免疫', '糖尿病', '阿尔茨海默', '心脏', '肝脏', '肺部', '脑部',
   '试验', '医院', '医生', '手术', '移植', '干细胞', '诊断', '疗法'
 ];
 
@@ -410,7 +410,7 @@ exports.handler = async function(event, context) {
         count: news.length,
         statistics: {
           international: internationalCount,
-          domestic: domesticCount
+          domestic: 0  // 国内源已禁用
         },
         updateTime: new Date().toISOString(),
         news: news

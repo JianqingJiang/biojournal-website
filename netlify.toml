@@ -5,12 +5,7 @@
   functions = "netlify/functions"
   publish = "."
 
-# 定时任务：每天早上6点（UTC时间22:00 = 北京时间早上6点）
-# 注意：Netlify 使用 UTC 时区
-[functions."fetch-news"]
-  schedule = "0 22 * * *"
-
-# 重定向规则（可选）
+# 重定向规则
 [[redirects]]
   from = "/api/fetch-news"
   to = "/.netlify/functions/fetch-news"
