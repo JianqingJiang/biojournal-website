@@ -11,13 +11,13 @@ const API_URL = '/.netlify/functions/fetch-news';
 // 期刊颜色映射
 function getJournalColor(journalName) {
     const colors = {
-        'Science': '#1a73e8',
-        'BMJ': '#d40000',
-        'Google News - Biomedicine': '#4285f4',
-        'Medical News Today': '#dc3912',
-        '新华健康': '#ff0000',
-        '人民网健康': '#ff0000',
-        '中国新闻网健康': '#ff0000'
+        'STAT News': '#1a73e8',
+        'ScienceDaily Health & Medicine': '#4285f4',
+        'BMJ News': '#d40000',
+        'Google News - Biomedicine': '#34a853',
+        'BBC Health': '#9c27b0',
+        'New York Times Health': '#1a73e8',
+        'Science Magazine News': '#e91e63'
     };
     return colors[journalName] || '#1a73e8';
 }
@@ -82,10 +82,10 @@ async function loadNews() {
         
     } catch (error) {
         console.error('❌ 获取新闻失败:', error);
-        console.log('使用备用数据...');
+        console.log('无法加载新闻，请稍后重试...');
         
-        // 备用数据（只在API失败时使用）
-        currentNewsData = generateLocalFallback();
+        // 不再使用备用数据，显示空状态
+        currentNewsData = [];
     }
     
     // 显示新闻
@@ -94,40 +94,6 @@ async function loadNews() {
     
     if (loading) loading.style.display = 'none';
     if (feedEnd) feedEnd.style.display = 'flex';
-}
-
-// 生成本地备用数据（临时方案）
-function generateLocalFallback() {
-    const now = new Date();
-    
-    return [
-        {
-            id: 'fallback-1',
-            title: 'Breaking: New COVID-19 Variant Detected in Europe',
-            titleCn: '突发：欧洲发现新的COVID-19变种',
-            summary: 'Scientists have detected a new SARS-CoV-2 variant in Europe. Early analysis suggests it may be more transmissible but less severe.',
-            summaryCn: '科学家在欧洲发现了新的SARS-CoV-2变种。初步分析表明它可能更具传染性，但严重程度较低。',
-            journal: 'Science',
-            journalCn: '科学杂志',
-            pubDate: now.toISOString(),
-            url: 'https://www.science.org/',
-            type: 'international',
-            language: 'en'
-        },
-        {
-            id: 'fallback-2',
-            title: '中国首个自主知识产权ADC药物获批上市',
-            titleCn: '中国首个自主知识产权ADC药物获批上市',
-            summary: 'Summary unavailable - fallback data',
-            summaryCn: '中国国家药品监督管理局（NMPA）批准了首个中国自主研发的抗体偶联药物（ADC）上市，标志着中国生物医药创新的重要里程碑。',
-            journal: '新华健康',
-            journalCn: '新华网健康栏目',
-            pubDate: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
-            url: 'http://www.xinhuanet.com/health/',
-            type: 'domestic',
-            language: 'zh'
-        }
-    ];
 }
 
 // 显示新闻

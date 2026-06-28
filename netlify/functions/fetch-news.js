@@ -395,9 +395,8 @@ exports.handler = async function(event, context) {
     console.log(`✅ Total news fetched: ${news.length}`);
     
     const internationalCount = news.filter(n => n.type === 'international').length;
-    const domesticCount = news.filter(n => n.type === 'domestic').length;
     
-    console.log(`📊 Statistics: ${internationalCount} international, ${domesticCount} domestic`);
+    console.log(`📊 Statistics: ${internationalCount} international, 0 domestic (domestic sources disabled)`);
     
     return {
       statusCode: 200,
