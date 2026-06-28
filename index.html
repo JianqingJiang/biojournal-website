@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="BioJournal 每日速递 - 汇聚国内外顶尖生物医药期刊最新研究动态">
+    <title>BioJournal 每日速递</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a73e8">
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">📬 <span>BioJournal</span></h1>
+            <p class="subtitle">每日速递 · 生物医药前沿资讯</p>
+        </div>
+    </header>
+
+    <!-- 日期栏 -->
+    <div class="date-bar">
+        <div class="date-info">
+            <span class="current-date" id="currentDate">加载中...</span>
+            <span class="update-time">每日 6:00 更新</span>
+        </div>
+        <div class="news-count">
+            <span id="newsCount">0</span> 条资讯
+        </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <nav class="filter-bar">
+        <button class="filter-btn active" data-filter="all">
+            全部
+        </button>
+        <button class="filter-btn" data-filter="international">
+            国际期刊 <span class="filter-badge">≈70%</span>
+        </button>
+        <button class="filter-btn" data-filter="domestic">
+            国内期刊 <span class="filter-badge">≈30%</span>
+        </button>
+    </nav>
+
+    <!-- 加载状态 -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>正在加载今日新闻...</p>
+    </div>
+
+    <!-- 新闻列表 -->
+    <main class="news-feed" id="newsFeed">
+        <!-- 动态生成新闻卡片 -->
+    </main>
+
+    <!-- 底部提示 -->
+    <div class="feed-end" id="feedEnd" style="display: none;">
+        <div class="line"></div>
+        <span>已显示全部内容</span>
+        <div class="line"></div>
+    </div>
+
+    <!-- 回到顶部 -->
+    <button class="back-to-top" id="backToTop" title="回到顶部">↑</button>
+
+    <!-- 底部信息 -->
+    <footer class="footer">
+        <p>📱 BioJournal 每日速递</p>
+        <p>汇聚 NEJM、Lancet、JAMA、Nature Medicine、Cell、Science 等顶尖期刊</p>
+        <p class="footer-links">
+            <a href="https://github.com" target="_blank">GitHub</a> · 
+            <a href="#" onclick="showAbout()">关于</a> · 
+            <a href="#" onclick="showSources()">期刊来源</a>
+        </p>
+        <p class="copyright">© 2026 BioJournal. All rights reserved.</p>
+    </footer>
+
+    <!-- 关于弹窗 -->
+    <div class="modal" id="aboutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>关于 BioJournal 每日速递</h2>
+                <button class="modal-close" onclick="closeModal('aboutModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <p>📬 <strong>BioJournal 每日速递</strong> 是一个专注于生物医药领域的新闻聚合平台。</p>
+                <p>📊 <strong>数据来源</strong>：每日自动抓取 NEJM、Lancet、JAMA、Nature Medicine、Cell、Science 等国际顶尖期刊，以及中华医学杂志、中国科学等国内权威期刊的最新研究动态。</p>
+                <p>⏰ <strong>更新时间</strong>：每天早上 6:00 自动更新</p>
+                <p>🌐 <strong>期刊比例</strong>：国际期刊 ≈ 70%，国内期刊 ≈ 30%</p>
+                <p>📱 <strong>多端访问</strong>：支持手机、平板、电脑等多种设备</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 期刊来源弹窗 -->
+    <div class="modal" id="sourcesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>期刊来源</h2>
+                <button class="modal-close" onclick="closeModal('sourcesModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <h3>🌍 国际期刊（≈70%）</h3>
+                <ul>
+                    <li><strong>NEJM</strong> - New England Journal of Medicine (美国)</li>
+                    <li><strong>Lancet</strong> - The Lancet (英国)</li>
+                    <li><strong>JAMA</strong> - Journal of the American Medical Association (美国)</li>
+                    <li><strong>Nat Med</strong> - Nature Medicine (美国)</li>
+                    <li><strong>Cell</strong> - Cell (美国)</li>
+                    <li><strong>Science</strong> - Science (美国)</li>
+                    <li><strong>Nat Biotechnol</strong> - Nature Biotechnology (美国)</li>
+                    <li><strong>Nat Genet</strong> - Nature Genetics (美国)</li>
+                    <li><strong>BMJ</strong> - British Medical Journal (英国)</li>
+                    <li><strong>PNAS</strong> - Proceedings of the National Academy of Sciences (美国)</li>
+                </ul>
+                <h3>🇨🇳 国内期刊（≈30%）</h3>
+                <ul>
+                    <li><strong>中华医学</strong> - 中华医学杂志</li>
+                    <li><strong>中国科学</strong> - 中国科学：生命科学</li>
+                    <li><strong>生物工程</strong> - 生物工程学报</li>
+                    <li><strong>药理学</strong> - 中国药理学通报</li>
+                    <li><strong>微生物</strong> - 微生物学报</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
