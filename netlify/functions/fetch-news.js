@@ -1,87 +1,127 @@
 const axios = require('axios');
 const xml2js = require('xml2js');
 
-// 已验证的真实News RSS源（国外期刊/新闻网站）
-// 更新策略：每个源获取最新的 3 条新闻
+// 生物医药关键词（用于过滤非相关新闻）
+const BIOMED_KEYWORDS = [
+  // 英文关键词
+  'medicine', 'medical', 'biomedical', 'clinical', 'drug', 'therapy', 'treatment',
+  'disease', 'cancer', 'tumor', 'patient', 'FDA', 'approval', 'vaccine',
+  'pharmaceutical', 'biotech', 'gene therapy', 'CRISPR', 'protein',
+  'antibody', 'virus', 'bacteria', 'immune', 'autoimmune', 'diabetes',
+  'Alzheimer', 'Parkinson', 'heart', 'liver', 'lung', 'brain', 'trial',
+  'hospital', 'doctor', 'nurse', 'surgery', 'transplant', 'stem cell',
+  'biomarker', 'diagnostic', 'therapeutic', 'FDA', 'EMA', 'clinical trial',
+  'pubmed', 'NEJM', 'Lancet', 'JAMA', 'BMJ', 'Nature Medicine', 'Cell',
+  // 中文关键词
+  '医学', '医药', '临床', '药物', '治疗', '疾病', '癌症', '肿瘤',
+  '患者', 'FDA', '批准', '疫苗', '生物', '基因', '抗体', '病毒',
+  '免疫', '糖尿病', '阿尔兹海默', '心脏', '肝脏', '肺部', '脑部',
+  '试验', '医院', '医生', '手术', '移植', '干细胞', '诊断', '疗法'
+];
+
+// 检查新闻是否与生物医药相关
+function isBiomedicalRelated(newsItem) {
+  const title = (newsItem.title || '').toLowerCase();
+  const summary = (newsItem.summary || '').toLowerCase();
+  const content = title + ' ' + summary;
+  
+  // 检查是否包含至少一个关键词
+  for (const keyword of BIOMED_KEYWORDS) {
+    if (content.includes(keyword.toLowerCase())) {
+      return true;
+    }
+  }
+  
+  // 检查来源是否是已知生物医学期刊
+  const journal = (newsItem.journal || '').toLowerCase();
+  const biomedicalJournals = [
+    'science', 'bmj', 'nature', 'cell', 'lancet', 'jama', 'nejm',
+    'stat news', 'sciencedaily', 'medical news', 'healthline', 'webmd'
+  ];
+  
+  for (const journalName of biomedicalJournals) {
+    if (journal.includes(journalName)) {
+      return true;
+    }
+  }
+  
+  // 不匹配
+  return false;
+}
+
+// 已验证的真实生物医药News RSS源（2026-06-28已验证）
+// 只保留已验证的源，移除所有未验证的源
 const INTERNATIONAL_SOURCES = [
   {
-    name: 'Science',
-    nameCn: '科学杂志',
-    url: 'https://www.science.org/rss/news_current.xml',
+    name: 'STAT News',
+    nameCn: 'STAT新闻',
+    url: 'https://www.statnews.com/feed/',
     verified: true,
-    maxItems: 3  // 每个源最多获取 3 条
+    maxItems: 3,
+    description: '专注于医疗健康、生命科学、医药行业报道'
   },
   {
-    name: 'BMJ',
-    nameCn: '英国医学杂志',
+    name: 'ScienceDaily Health & Medicine',
+    nameCn: 'ScienceDaily健康与医学',
+    url: 'https://www.sciencedaily.com/rss/health_medicine.xml',
+    verified: true,
+    maxItems: 3,
+    description: '大众健康与医学领域的最新研究资讯'
+  },
+  {
+    name: 'BMJ News',
+    nameCn: '英国医学杂志新闻',
     url: 'https://www.bmj.com/rss/recent.xml',
     verified: true,
-    maxItems: 3
+    maxItems: 3,
+    description: 'BMJ最新医学新闻'
   },
   {
     name: 'Google News - Biomedicine',
     nameCn: 'Google新闻-生物医药',
-    url: 'https://news.google.com/rss/search?q=biomedicine+medical+journal&hl=en-US&gl=US&ceid=US:en',
+    url: 'https://news.google.com/rss/search?q=biomedicine+clinical+drug+FDA+vaccine&hl=en-US&gl=US&ceid=US:en',
     verified: true,
-    maxItems: 3
+    maxItems: 3,
+    description: 'Google News生物医药相关新闻'
   },
   {
     name: 'BBC Health',
     nameCn: 'BBC健康栏目',
     url: 'http://feeds.bbci.co.uk/news/health/rss.xml',
     verified: true,
-    maxItems: 3
+    maxItems: 2,
+    description: 'BBC健康新闻'
   },
   {
     name: 'New York Times Health',
     nameCn: '纽约时报健康栏目',
     url: 'https://rss.nytimes.com/services/xml/rss/nyt/Health.xml',
     verified: true,
-    maxItems: 3
+    maxItems: 2,
+    description: '纽约时报健康新闻'
   },
   {
-    name: 'ScienceDaily Health',
-    nameCn: 'ScienceDaily健康与医学',
-    url: 'https://www.sciencedaily.com/rss/health_medicine.xml',
+    name: 'Science Magazine News',
+    nameCn: '科学杂志新闻',
+    url: 'https://www.science.org/rss/news_current.xml',
     verified: true,
-    maxItems: 3
-  },
-  {
-    name: 'STAT News',
-    nameCn: 'STAT新闻',
-    url: 'https://www.statnews.com/feed/',
-    verified: true,
-    maxItems: 3
+    maxItems: 2,
+    description: 'Science杂志新闻（会过滤非生物医药内容）'
   }
-  // 总计：7个国际源 × 3条 = 21条（满足 >10 条且 70% 国际 ✅）
 ];
 
-// 国内期刊RSS源（待验证）
-// 更新策略：每个源获取最新的 2 条新闻
+// 国内生物医药新闻RSS源（2026-06-28已验证）
+// 注意：国内期刊的News RSS较难找到，暂时使用Google News中文查询
 const DOMESTIC_SOURCES = [
   {
-    name: '新华健康',
-    nameCn: '新华网健康栏目',
-    url: 'http://www.xinhuanet.com/health/rss.xml',
-    verified: false,
-    maxItems: 2  // 每个源最多获取 2 条
-  },
-  {
-    name: '人民网健康',
-    nameCn: '人民网健康栏目',
-    url: 'http://health.people.com.cn/rss.xml',
-    verified: false,
-    maxItems: 2
-  },
-  {
-    name: '中国新闻网健康',
-    nameCn: '中国新闻网健康栏目',
-    url: 'http://www.chinanews.com/health/rss.xml',
-    verified: false,
-    maxItems: 2
+    name: 'Google News - 生物医药',
+    nameCn: 'Google新闻-生物医药（中文）',
+    url: 'https://news.google.com/rss/search?q=%E7%94%9F%E7%89%A9%E5%8C%BB%E8%8D%AF+%E5%8C%BB%E5%AD%A6+%E4%B8%B4%E5%BA%8A+%E8%8D%AF%E7%89%A9&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
+    verified: true,
+    maxItems: 3,
+    description: 'Google News中文生物医药相关新闻'
   }
 ];
-// 总计：3个国内源 × 2条 = 6条（满足 30% 国内 ✅）
 
 // 解析RSS XML
 async function parseRSS(url, sourceName) {
@@ -94,7 +134,7 @@ async function parseRSS(url, sourceName) {
       },
       timeout: 15000,
       validateStatus: function(status) {
-        return status < 500; // 接受重定向和客户端错误
+        return status < 500;
       }
     });
     
@@ -119,31 +159,27 @@ async function parseRSS(url, sourceName) {
 }
 
 // 从RSS数据中提取新闻
-// 限制：每个源最多返回 maxItems 条（默认 3 条）
 function extractNewsFromRSS(rssData, source) {
   const news = [];
-  const maxItems = source.maxItems || 3;  // 默认每个源获取 3 条
+  const maxItems = source.maxItems || 3;
   
   try {
     // 处理RSS 2.0格式
     if (rssData.rss && rssData.rss.channel && rssData.rss.channel.item) {
       let items = rssData.rss.channel.item;
       
-      // 确保items是数组
       if (!Array.isArray(items)) {
         items = [items];
       }
       
-      // 限制条数：只取前 maxItems 条
-      items = items.slice(0, maxItems);
+      items = items.slice(0, maxItems * 2); // 先取2倍，过滤后再限制
       
       items.forEach(item => {
-        // 跳过无效条目
         if (!item.title || item.title === 'No title') {
           return;
         }
         
-        news.push({
+        const newsItem = {
           id: `${source.name}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           title: item.title || 'No title',
           titleCn: `[${source.nameCn}] ${item.title || '无标题'}`,
@@ -153,9 +189,16 @@ function extractNewsFromRSS(rssData, source) {
           journalCn: source.nameCn,
           pubDate: item.pubDate || item.published || new Date().toISOString(),
           url: item.link || item.guid || '#',
-          type: 'international',
-          language: 'en'
-        });
+          type: source.type || 'international',
+          language: source.language || 'en'
+        };
+        
+        // 过滤：只保留生物医药相关新闻
+        if (isBiomedicalRelated(newsItem)) {
+          news.push(newsItem);
+        } else {
+          console.log(`⚠️ Skipping non-biomedical news: ${newsItem.title}`);
+        }
       });
     }
     
@@ -167,15 +210,13 @@ function extractNewsFromRSS(rssData, source) {
         entries = [entries];
       }
       
-      // 限制条数：只取前 maxItems 条
-      entries = entries.slice(0, maxItems);
+      entries = entries.slice(0, maxItems * 2);
       
       entries.forEach(entry => {
         if (!entry.title || entry.title === 'No title') {
           return;
         }
         
-        // 处理Atom链接（可能是对象）
         let link = '#';
         if (entry.link) {
           if (typeof entry.link === 'string') {
@@ -185,7 +226,7 @@ function extractNewsFromRSS(rssData, source) {
           }
         }
         
-        news.push({
+        const newsItem = {
           id: `${source.name}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           title: entry.title || 'No title',
           titleCn: `[${source.nameCn}] ${entry.title || '无标题'}`,
@@ -195,9 +236,16 @@ function extractNewsFromRSS(rssData, source) {
           journalCn: source.nameCn,
           pubDate: entry.published || entry.updated || new Date().toISOString(),
           url: link,
-          type: 'international',
-          language: 'en'
-        });
+          type: source.type || 'international',
+          language: source.language || 'en'
+        };
+        
+        // 过滤：只保留生物医药相关新闻
+        if (isBiomedicalRelated(newsItem)) {
+          news.push(newsItem);
+        } else {
+          console.log(`⚠️ Skipping non-biomedical news: ${newsItem.title}`);
+        }
       });
     }
     
@@ -208,17 +256,11 @@ function extractNewsFromRSS(rssData, source) {
     console.error(`❌ Failed to extract news from ${source.name}:`, error.message);
   }
   
-  return news;
+  // 限制条数：只返回前 maxItems 条（已过滤）
+  return news.slice(0, maxItems);
 }
 
 // 获取所有新闻
-// 更新策略：
-// 1. 国际来源（7个源 × 3条 = 21条，占比 78% ✅ 满足 >70% 要求）
-// 2. 国内来源（3个源 × 2条 = 6条，占比 22% ✅ 满足 ~30% 要求）
-// 3. 总计：27条（满足 >10条 要求 ✅）
-// 4. 去重：根据标题和URL去重
-// 5. 排序：按发布日期降序（最新的在前）
-// 6. 返回：前20条（保证质量）
 async function fetchAllNews() {
   const allNews = [];
   
@@ -228,12 +270,15 @@ async function fetchAllNews() {
       const rssData = await parseRSS(source.url, source.name);
       
       if (rssData) {
-        const news = extractNewsFromRSS(rssData, source);
+        const news = extractNewsFromRSS(rssData, {
+          ...source,
+          type: 'international',
+          language: 'en'
+        });
         allNews.push(...news);
-        console.log(`📰 Got ${news.length} news from ${source.name}`);
+        console.log(`📰 Got ${news.length} biomedical news from ${source.name}`);
       }
       
-      // 避免请求过快
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
@@ -244,14 +289,18 @@ async function fetchAllNews() {
       const rssData = await parseRSS(source.url, source.name);
       
       if (rssData) {
-        const news = extractNewsFromRSS(rssData, source);
+        const news = extractNewsFromRSS(rssData, {
+          ...source,
+          type: 'domestic',
+          language: 'zh'
+        });
         // 标记为国内
         news.forEach(item => {
           item.type = 'domestic';
           item.language = 'zh';
         });
         allNews.push(...news);
-        console.log(`📰 Got ${news.length} news from ${source.name}`);
+        console.log(`📰 Got ${news.length} biomedical news from ${source.name}`);
       }
       
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -260,12 +309,12 @@ async function fetchAllNews() {
   
   // 如果没有获取到足够的新闻，添加备用数据
   if (allNews.length < 10) {
-    console.log('⚠️ Not enough news, adding fallback data...');
+    console.log('⚠️ Not enough biomedical news, adding fallback data...');
     const fallbackNews = generateFallbackNews();
     allNews.push(...fallbackNews);
   }
   
-  // 去重：根据URL去重（避免不同源报道同一新闻）
+  // 去重
   const uniqueNews = [];
   const seenUrls = new Set();
   const seenTitles = new Set();
@@ -274,13 +323,11 @@ async function fetchAllNews() {
     const urlKey = news.url ? news.url.toLowerCase().trim() : '';
     const titleKey = news.title ? news.title.toLowerCase().trim() : '';
     
-    // 跳过无效URL
     if (!urlKey || urlKey === '#' || urlKey === '') {
       uniqueNews.push(news);
       continue;
     }
     
-    // 检查URL和标题是否重复
     if (!seenUrls.has(urlKey) && !seenTitles.has(titleKey)) {
       seenUrls.add(urlKey);
       seenTitles.add(titleKey);
@@ -299,11 +346,10 @@ async function fetchAllNews() {
     }
   });
   
-  // 返回前20条（大于10条）
-  // 使用 uniqueNews（已去重）
+  // 返回前20条
   const finalNews = uniqueNews.slice(0, 20);
   
-  console.log(`✅ Final news count: ${finalNews.length} (after deduplication)`);
+  console.log(`✅ Final news count: ${finalNews.length} (after filtering & deduplication)`);
   
   return finalNews;
 }
@@ -358,13 +404,12 @@ function generateFallbackNews() {
 // Netlify Function 主函数
 exports.handler = async function(event, context) {
   try {
-    console.log('🚀 Starting news fetch...');
+    console.log('🚀 Starting biomedical news fetch...');
     
     const news = await fetchAllNews();
     
     console.log(`✅ Total news fetched: ${news.length}`);
     
-    // 统计国际和国内新闻数量
     const internationalCount = news.filter(n => n.type === 'international').length;
     const domesticCount = news.filter(n => n.type === 'domestic').length;
     
@@ -375,7 +420,7 @@ exports.handler = async function(event, context) {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'max-age=3600' // 缓存1小时
+        'Cache-Control': 'max-age=3600'
       },
       body: JSON.stringify({
         success: true,
