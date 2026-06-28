@@ -49,6 +49,33 @@ function isBiomedicalRelated(newsItem) {
   return false;
 }
 
+// 翻译文本（英文→中文），使用Google Translate API
+async function translateToChinese(text) {
+  if (!text || text.trim() === '') return '';
+  
+  try {
+    // 使用Google Translate的非官方API（免费）
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`;
+    
+    const response = await axios.get(url, {
+      timeout: 8000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; BioJournalBot/1.0)'
+      }
+    });
+    
+    // 解析响应格式：[[["翻译结果","原文",null,null,null]],null,"en"]
+    if (response.data && response.data[0] && response.data[0][0]) {
+      return response.data[0][0][0] || text;
+    }
+    
+    return text; // 翻译失败，返回原文
+  } catch (error) {
+    console.error(`❌ Translation failed: ${error.message}`);
+    return text; // 翻译失败，返回原文
+  }
+}
+
 // 已验证的真实生物医药News RSS源（2026-06-28已验证）
 // 只保留已验证的源，移除所有未验证的源
 const INTERNATIONAL_SOURCES = [
@@ -110,18 +137,17 @@ const INTERNATIONAL_SOURCES = [
   }
 ];
 
-// 国内生物医药新闻RSS源（2026-06-28已验证）
-// 注意：国内期刊的News RSS较难找到，暂时使用Google News中文查询
-const DOMESTIC_SOURCES = [
-  {
-    name: 'Google News - 生物医药',
-    nameCn: 'Google新闻-生物医药（中文）',
-    url: 'https://news.google.com/rss/search?q=%E7%94%9F%E7%89%A9%E5%8C%BB%E8%8D%AF+%E5%8C%BB%E5%AD%A6+%E4%B8%B4%E5%BA%8A+%E8%8D%AF%E7%89%A9&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-    verified: true,
-    maxItems: 3,
-    description: 'Google News中文生物医药相关新闻'
-  }
-];
+// 国内生物医药新闻RSS源（已注释 - 用户同意不需要国内源）
+// const DOMESTIC_SOURCES = [
+//   {
+//     name: 'Google News - 生物医药',
+//     nameCn: 'Google新闻-生物医药（中文）',
+//     url: 'https://news.google.com/rss/search?q=%E7%94%9F%E7%89%A9%E5%8C%BB%E8%8D%AF+%E5%8C%BB%E5%AD%A6+%E4%B8%B4%E5%BA%8A+%E8%8D%AF%E7%89%A9&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
+//     verified: true,
+//     maxItems: 3,
+//     description: 'Google News中文生物医药相关新闻'
+//   }
+// ];
 
 // 解析RSS XML
 async function parseRSS(url, sourceName) {
@@ -158,8 +184,8 @@ async function parseRSS(url, sourceName) {
   }
 }
 
-// 从RSS数据中提取新闻
-function extractNewsFromRSS(rssData, source) {
+// 从RSS数据中提取新闻（异步，包含翻译）
+async function extractNewsFromRSS(rssData, source) {
   const news = [];
   const maxItems = source.maxItems || 3;
   
@@ -174,17 +200,17 @@ function extractNewsFromRSS(rssData, source) {
       
       items = items.slice(0, maxItems * 2); // 先取2倍，过滤后再限制
       
-      items.forEach(item => {
+      for (const item of items) {
         if (!item.title || item.title === 'No title') {
-          return;
+          continue;
         }
         
         const newsItem = {
           id: `${source.name}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           title: item.title || 'No title',
-          titleCn: `[${source.nameCn}] ${item.title || '无标题'}`,
+          titleCn: '', // 将在翻译后填充
           summary: item.description || item.summary || 'No summary available',
-          summaryCn: `[${source.nameCn}] ${item.description || item.summary || '暂无摘要'}`,
+          summaryCn: '', // 将在翻译后填充
           journal: source.name,
           journalCn: source.nameCn,
           pubDate: item.pubDate || item.published || new Date().toISOString(),
@@ -193,13 +219,25 @@ function extractNewsFromRSS(rssData, source) {
           language: source.language || 'en'
         };
         
+        // 翻译标题和摘要（异步）
+        try {
+          newsItem.titleCn = await translateToChinese(newsItem.title);
+          // 只翻译摘要的前500字符，避免过长
+          const summaryToTranslate = newsItem.summary.substring(0, 500);
+          newsItem.summaryCn = await translateToChinese(summaryToTranslate);
+        } catch (translateError) {
+          console.error(`⚠️ Translation failed for: ${newsItem.title}`, translateError.message);
+          newsItem.titleCn = newsItem.title; // 翻译失败，使用原文
+          newsItem.summaryCn = newsItem.summary;
+        }
+        
         // 过滤：只保留生物医药相关新闻
         if (isBiomedicalRelated(newsItem)) {
           news.push(newsItem);
         } else {
           console.log(`⚠️ Skipping non-biomedical news: ${newsItem.title}`);
         }
-      });
+      }
     }
     
     // 处理Atom格式
@@ -212,9 +250,9 @@ function extractNewsFromRSS(rssData, source) {
       
       entries = entries.slice(0, maxItems * 2);
       
-      entries.forEach(entry => {
+      for (const entry of entries) {
         if (!entry.title || entry.title === 'No title') {
-          return;
+          continue;
         }
         
         let link = '#';
@@ -229,9 +267,9 @@ function extractNewsFromRSS(rssData, source) {
         const newsItem = {
           id: `${source.name}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           title: entry.title || 'No title',
-          titleCn: `[${source.nameCn}] ${entry.title || '无标题'}`,
+          titleCn: '', // 将在翻译后填充
           summary: entry.summary || entry.content || 'No summary available',
-          summaryCn: `[${source.nameCn}] ${entry.summary || entry.content || '暂无摘要'}`,
+          summaryCn: '', // 将在翻译后填充
           journal: source.name,
           journalCn: source.nameCn,
           pubDate: entry.published || entry.updated || new Date().toISOString(),
@@ -240,13 +278,25 @@ function extractNewsFromRSS(rssData, source) {
           language: source.language || 'en'
         };
         
+        // 翻译标题和摘要（异步）
+        try {
+          newsItem.titleCn = await translateToChinese(newsItem.title);
+          // 只翻译摘要的前500字符，避免过长
+          const summaryToTranslate = newsItem.summary.substring(0, 500);
+          newsItem.summaryCn = await translateToChinese(summaryToTranslate);
+        } catch (translateError) {
+          console.error(`⚠️ Translation failed for: ${newsItem.title}`, translateError.message);
+          newsItem.titleCn = newsItem.title; // 翻译失败，使用原文
+          newsItem.summaryCn = newsItem.summary;
+        }
+        
         // 过滤：只保留生物医药相关新闻
         if (isBiomedicalRelated(newsItem)) {
           news.push(newsItem);
         } else {
           console.log(`⚠️ Skipping non-biomedical news: ${newsItem.title}`);
         }
-      });
+      }
     }
     
     else {
@@ -270,7 +320,7 @@ async function fetchAllNews() {
       const rssData = await parseRSS(source.url, source.name);
       
       if (rssData) {
-        const news = extractNewsFromRSS(rssData, {
+        const news = await extractNewsFromRSS(rssData, {
           ...source,
           type: 'international',
           language: 'en'
@@ -283,35 +333,14 @@ async function fetchAllNews() {
     }
   }
   
-  // 获取国内来源的新闻
-  for (const source of DOMESTIC_SOURCES) {
-    if (source.url) {
-      const rssData = await parseRSS(source.url, source.name);
-      
-      if (rssData) {
-        const news = extractNewsFromRSS(rssData, {
-          ...source,
-          type: 'domestic',
-          language: 'zh'
-        });
-        // 标记为国内
-        news.forEach(item => {
-          item.type = 'domestic';
-          item.language = 'zh';
-        });
-        allNews.push(...news);
-        console.log(`📰 Got ${news.length} biomedical news from ${source.name}`);
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-  }
+  // 已注释：国内源不需要（用户同意）
+  // for (const source of DOMESTIC_SOURCES) {
+  //   ...
+  // }
   
-  // 如果没有获取到足够的新闻，添加备用数据
+  // 如果没有获取到足够的新闻，返回空数组（不再使用备用数据）
   if (allNews.length < 10) {
-    console.log('⚠️ Not enough biomedical news, adding fallback data...');
-    const fallbackNews = generateFallbackNews();
-    allNews.push(...fallbackNews);
+    console.log(`⚠️ Only got ${allNews.length} biomedical news, which is less than expected. But we will NOT generate fake news.`);
   }
   
   // 去重
@@ -346,7 +375,7 @@ async function fetchAllNews() {
     }
   });
   
-  // 返回前20条
+  // 返回前20条（或所有）
   const finalNews = uniqueNews.slice(0, 20);
   
   console.log(`✅ Final news count: ${finalNews.length} (after filtering & deduplication)`);
@@ -354,52 +383,7 @@ async function fetchAllNews() {
   return finalNews;
 }
 
-// 生成备用新闻（临时方案）
-function generateFallbackNews() {
-  const now = new Date();
-  
-  return [
-    {
-      id: 'fallback-1',
-      title: 'Breaking: New COVID-19 variant detected in Europe',
-      titleCn: '突发：欧洲发现新的COVID-19变种',
-      summary: 'Scientists have detected a new SARS-CoV-2 variant in Europe. Early analysis suggests it may be more transmissible but less severe.',
-      summaryCn: '科学家在欧洲发现了新的SARS-CoV-2变种。初步分析表明它可能更具传染性，但严重程度较低。',
-      journal: 'Science',
-      journalCn: '科学杂志',
-      pubDate: now.toISOString(),
-      url: 'https://www.science.org/',
-      type: 'international',
-      language: 'en'
-    },
-    {
-      id: 'fallback-2',
-      title: 'CRISPR gene therapy shows promise for sickle cell disease',
-      titleCn: 'CRISPR基因疗法在镰状细胞病中显示希望',
-      summary: 'A new study published in NEJM demonstrates the effectiveness of CRISPR-Cas9 gene editing in treating sickle cell disease.',
-      summaryCn: '发表在NEJM上的一项新研究证明了CRISPR-Cas9基因编辑在治疗镰状细胞病方面的有效性。',
-      journal: 'NEJM',
-      journalCn: '新英格兰医学杂志',
-      pubDate: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      url: 'https://www.nejm.org/',
-      type: 'international',
-      language: 'en'
-    },
-    {
-      id: 'fallback-3',
-      title: '中国首个自主知识产权ADC药物获批上市',
-      titleCn: '中国首个自主知识产权ADC药物获批上市',
-      summary: 'Summary unavailable - fallback data',
-      summaryCn: '中国国家药品监督管理局（NMPA）批准了首个中国自主研发的抗体偶联药物（ADC）上市，标志着中国生物医药创新的重要里程碑。',
-      journal: '新华健康',
-      journalCn: '新华网健康栏目',
-      pubDate: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      url: 'http://www.xinhuanet.com/health/',
-      type: 'domestic',
-      language: 'zh'
-    }
-  ];
-}
+// 注意：已移除 generateFallbackNews() 函数，不再生成虚假新闻
 
 // Netlify Function 主函数
 exports.handler = async function(event, context) {

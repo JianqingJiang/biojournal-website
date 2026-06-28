@@ -185,9 +185,11 @@ function createNewsCard(news, index) {
     const regionClass = news.type === 'international' ? 'intl' : 'domestic';
     const regionText = news.type === 'international' ? '国际' : '国内';
     
-    // 使用中文标题和摘要（如果有）
-    const displayTitle = news.titleCn || news.title;
-    const displaySummary = news.summaryCn || news.summary;
+    // 同时显示中英文标题和摘要
+    const englishTitle = news.title || '';
+    const chineseTitle = news.titleCn || news.title || '';
+    const englishSummary = news.summary || '';
+    const chineseSummary = news.summaryCn || news.summary || '';
     
     card.innerHTML = `
         <div class="card-journal">
@@ -196,8 +198,10 @@ function createNewsCard(news, index) {
             <span class="region-tag ${regionClass}">${regionText}</span>
             <span class="card-date">${formatDate(news.pubDate)}</span>
         </div>
-        <div class="card-title">${displayTitle}</div>
-        <div class="card-summary">${displaySummary || '点击查看详情'}</div>
+        <div class="card-title">${chineseTitle}</div>
+        ${englishTitle && englishTitle !== chineseTitle ? `<div style="font-size: 12px; color: #9ca3af; margin-top: 4px; line-height: 1.4;">${englishTitle}</div>` : ''}
+        <div class="card-summary" style="margin-top: 8px;">${chineseSummary}</div>
+        ${englishSummary && englishSummary !== chineseSummary ? `<div style="font-size: 12px; color: #9ca3af; margin-top: 4px; line-height: 1.4;">${englishSummary.substring(0, 150)}${englishSummary.length > 150 ? '...' : ''}</div>` : ''}
         <div class="card-footer">
             <span class="read-more">点击查看详情 →</span>
         </div>
@@ -222,9 +226,11 @@ function openDetail(id) {
     const regionClass = news.type === 'international' ? 'intl' : 'domestic';
     const regionText = news.type === 'international' ? '国际期刊' : '国内期刊';
     
-    // 使用中文标题和摘要
-    const displayTitle = news.titleCn || news.title;
-    const displaySummary = news.summaryCn || news.summary;
+    // 同时显示中英文标题和摘要
+    const englishTitle = news.title || '';
+    const chineseTitle = news.titleCn || news.title || '';
+    const englishSummary = news.summary || '';
+    const chineseSummary = news.summaryCn || news.summary || '';
     
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 700px;">
@@ -233,12 +239,20 @@ function openDetail(id) {
                 <button class="modal-close" onclick="closeModal('detailModal')">×</button>
             </div>
             <div class="modal-body">
-                <h1 style="font-size: 22px; line-height: 1.5; margin-bottom: 12px; color: #111827;">${displayTitle}</h1>
+                <h1 style="font-size: 22px; line-height: 1.5; margin-bottom: 12px; color: #111827;">${chineseTitle}</h1>
+                ${englishTitle && englishTitle !== chineseTitle ? `<div style="font-size: 16px; color: #9ca3af; font-weight: normal; margin-top: 8px; line-height: 1.4;">${englishTitle}</div>` : ''}
                 
                 <div style="background: #f9fafb; padding: 16px; border-radius: 12px; margin-bottom: 16px; border-left: 4px solid ${getJournalColor(news.journal)};">
-                    <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">内容摘要</div>
-                    <p style="font-size: 15px; line-height: 1.8; color: #374151;">${displaySummary || '暂无摘要，点击原文链接查看详情'}</p>
+                    <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">中文摘要</div>
+                    <p style="font-size: 15px; line-height: 1.8; color: #374151;">${chineseSummary || '暂无摘要，点击原文链接查看详情'}</p>
                 </div>
+                
+                ${englishSummary && englishSummary !== chineseSummary ? `
+                <div style="background: white; border: 1px solid #e5e7eb; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                    <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">英文原文</div>
+                    <p style="font-size: 15px; line-height: 1.8; color: #374151;">${englishSummary}</p>
+                </div>
+                ` : ''}
                 
                 <div style="background: white; border: 1px solid #e5e7eb; padding: 16px; border-radius: 12px;">
                     <div style="font-size: 12px; color: #9ca3af; margin-bottom: 8px;">期刊信息</div>
